@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>The conquest of world Demon</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game" aria-label="Third-person dungeon game"></canvas>
+  <div id="vignette"></div>
+  <header class="hud">
+    <section class="player"><div class="eyebrow">THE HERO</div><div class="name">PAUL <span>LV. 1</span></div><div class="bar-label">HP <span id="hp-text">300 / 300</span></div><div class="bar"><div id="hp-fill"></div></div></section>
+    <section class="location"><div class="eyebrow" id="floor-number">FLOOR 01</div><h2 id="location-name">Inferno Keep</h2><p id="objective">Conquer the inferno.</p><p id="minion-count">Minions: 8 / 8</p></section>
+  </header>
+  <div id="enemy-hud" hidden><div class="eyebrow" id="boss-name">EMBER DRAGON</div><div class="bar"><div id="enemy-fill"></div></div><small id="enemy-hp">500 / 500</small><br><small id="enemy-status">Idle</small></div>
+  <div id="floor-banner" hidden><small id="floor-label"></small><strong id="floor-title"></strong></div><div id="ability-status"><span><kbd>SPACE</kbd> DODGE <b id="dodge-status">READY</b></span><span><kbd>RMB</kbd> X SLASH <b id="dimension-status">READY</b></span></div><div id="crosshair">+</div>
+  <div id="toast" role="status"></div><div id="meteor-hint" role="status" hidden></div><div id="blackhole-hint" role="status" hidden></div>
+  <footer><div class="weapon"><span class="key">1</span><div><strong>KEVIN</strong><small>Legendary Sword</small><small style="color:#8cddff">Q · LIGHT PLASMA · ∞</small><small style="color:#ffcc77">E · SKYFALL METEOR</small><small style="color:#cf9bff">F · BLACK HOLE · 5s</small></div></div><div class="controls"><span><kbd>W A S D</kbd> Move</span><span><kbd>MOUSE</kbd> Look</span><span><kbd>LMB</kbd> Attack</span><span><kbd>RMB</kbd> X Slash / drag look</span><span><kbd>SPACE</kbd> Dodge</span><span><kbd>Q / HOLD</kbd> Plasma</span><span><kbd>E</kbd> Aim / Meteor</span><span><kbd>F</kbd> Black Hole</span><span><kbd>ESC</kbd> Pause</span><span><kbd>R</kbd> Restart</span></div><div class="build"><span id="build-floor">Inferno Keep</span> <b>36 × 72</b></div></footer>
+  <main id="overlay">
+    <div class="intro"><div class="eyebrow">A DARK FANTASY PROTOTYPE</div><h1><span class="title-prefix">The conquest of</span> <span class="title-main">world Demon</span></h1><div class="divider">◆</div><p id="intro-text">One hero. One legendary blade.<br>Conquer the inferno. Ascend to the Skybound Citadel.</p><button id="start">ENTER THE DUNGEON <span>→</span></button><small id="scope">Inferno Keep · 500 HP dragon · 8 minions</small><section id="floor-travel" aria-label="Floor selection"><p id="floor-travel-locked">Defeat The Gleam Eyes to unlock Floor 1 / 2 selection.</p><div id="floor-travel-options" hidden><div class="eyebrow">FLOOR TRAVEL UNLOCKED</div><p>Choose a floor for a fresh encounter.<br>Available here anytime with ESC.</p><div class="floor-buttons"><button id="travel-floor-1">FLOOR 1<small>Inferno Keep</small></button><button id="travel-floor-2">FLOOR 2<small>Skybound Citadel</small></button></div></div></section></div>
+  </main>
+  <script src="vendor/three.min.js"></script><script src="game.js"></script><script src="combat-extra.js"></script><script src="floors.js"></script><script src="bootstrap.js"></script>
+</body>
+</html>
