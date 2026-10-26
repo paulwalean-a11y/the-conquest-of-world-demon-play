@@ -80,6 +80,7 @@ function spawnFloorEnemies(){
 }
 function spawnFloorBoss(){
   enemy=FLOORS[currentFloor].boss();enemy.root.position.set(0,0,MAP.dragonZ);enemy.root.rotation.y=Math.PI;
+  enhanceBossVisuals(enemy,currentFloor);
   initBossHitFeedback(enemy);
   enemy.dormant=!!FLOORS[currentFloor].arena;hostiles.unshift(enemy);
   if(!FLOORS[currentFloor].arena)enemy.root.add(danger);
@@ -90,7 +91,7 @@ function loadFloor(number){
   scene.background.setHex(config.sky);scene.fog.color.setHex(config.sky);scene.fog.density=config.arena?.007:.013;
   hemisphere.color.setHex(config.arena?0xcceaff:0xffbd88);hemisphere.groundColor.setHex(config.arena?0x53617e:0x6c2420);
   moon.color.setHex(config.arena?0xdaf8ff:0xffcaa0);
-  environment=config.build();scene.add(environment.root);spawnFloorEnemies();spawnFloorBoss();
+  environment=config.build();enhanceWorldVisuals(environment,number);scene.add(environment.root);spawnFloorEnemies();spawnFloorBoss();
   for(const p of pillars)plasmaPillars.push(new THREE.Box3(new THREE.Vector3(p.x-p.r,0,p.z-p.r),new THREE.Vector3(p.x+p.r,4.6,p.z+p.r)));
   ended=false;yaw=0;pitch=.45;elapsed=0;keys.clear();player.hp=player.maxHp;player.root.position.set(0,0,MAP.spawnZ);player.root.rotation.set(0,0,0);
   Object.assign(combat,{cooldown:0,time:0,hit:false,swings:0});

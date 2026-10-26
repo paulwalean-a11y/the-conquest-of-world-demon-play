@@ -1,5 +1,5 @@
 'use strict';
-// Shared controller and original Floor 1 combat. All assets are local primitive meshes.
+// Shared controller and original Floor 1 combat. Paul's detailed armor is authored in Blender.
 const MAP={halfX:18,halfZ:36,spawnZ:26,dragonZ:-21}; // 36 × 72 = 3 × the original 24 × 36 area.
 const PLAYER_SPEED=7.2;
 const PLAYER_MAX_HP=300,DRAGON_SCALE=5,DRAGON_RADIUS=4.5;
@@ -15,12 +15,14 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
 const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, .1, 180);
 const hemisphere=new THREE.HemisphereLight(0xffbd88,0x6c2420,2);scene.add(hemisphere);
 const moon = new THREE.DirectionalLight(0xffcaa0, 2.2);
 moon.position.set(-9, 30, 8); moon.castShadow = true;
 Object.assign(moon.shadow.camera, {left:-44,right:44,top:44,bottom:-44,far:100});
-moon.shadow.mapSize.set(1024,1024); moon.shadow.bias = -.001;
+moon.shadow.mapSize.set(2048,2048); moon.shadow.bias = -.00035;moon.shadow.normalBias=.025;
 scene.add(moon);
 const mats = {};
 function material(color, glow=0) {
@@ -81,6 +83,7 @@ function taper(parent,from,to,r1,r2,color) {
   mesh.castShadow=true;parent.add(mesh);return mesh;
 }
 function hero() {
+  if(window.PAUL_HERO_ASSET)return createBlenderHero(scene,renderer);
   const root=new THREE.Group(); const body=new THREE.Group(); root.add(body);
   const silver=0xaabecb,gold=0xd6b36b,blue=0x234b79;
   gem(body,0,1.16,0,.49,.55,.33,silver);
@@ -158,11 +161,13 @@ function minion(x,z){
 }
 const player={...hero(),hp:PLAYER_MAX_HP,maxHp:PLAYER_MAX_HP,state:'NORMAL'};
 player.root.position.set(0,0,MAP.spawnZ);
-const kevin=new THREE.Group();kevin.position.set(.56,1,0);player.body.add(kevin);
+const kevin=player.weapon||new THREE.Group();kevin.position.set(.56,1,0);player.body.add(kevin);
+if(!player.weapon){
 box(kevin,0,-.1,0,.1,.34,.1,0x463b30);
 box(kevin,0,.08,0,.5,.09,.14,0xbba777);
 const blade=box(kevin,0,.76,0,.13,1.3,.07,0xc5e6ee);
 blade.material=new THREE.MeshStandardMaterial({color:0xc5e6ee,emissive:0x438bb0,emissiveIntensity:.6,metalness:.65,roughness:.25});
+}
 kevin.rotation.x=-.55;
 const slash=new THREE.Mesh(new THREE.RingGeometry(1.3,2.1,24,1,Math.PI/6,Math.PI*2/3),new THREE.MeshBasicMaterial({color:0xa7e9ff,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}));
 slash.rotation.x=-Math.PI/2;slash.position.y=.9;slash.visible=false;player.root.add(slash);
@@ -235,6 +240,7 @@ function update(dt){
   player.root.rotation.y=yaw;
   player.legs.forEach((leg,i)=>leg.rotation.x=length?Math.sin(elapsed*11+i*Math.PI)*.4:0);
   player.cape.rotation.x=Math.sin(elapsed*6)*.035+(length?.13:0);
+  animateHeroDetails(player,elapsed,!!length,combat.time>0,dodging);
   updateCombat(dt);updatePlasma(dt);updateMeteor(dt);
   if(!active||transition)return;updateDimension(dt);if(!active||transition)return;
   FLOORS[currentFloor].controller(dt);updateMinions(dt);updateBlackhole(dt);updateCamera();

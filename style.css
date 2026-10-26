@@ -19,3 +19,5 @@
 .floor-buttons button:hover,.floor-buttons button:focus-visible{background:#28465d}.floor-buttons small{display:block;margin-top:6px;font-size:10px;letter-spacing:.3px;color:#c1cdd2}
 #meteor-hint{bottom:198px}#blackhole-hint{bottom:240px}
 @media(max-width:700px){#ability-status{bottom:170px;gap:4px;width:max-content}#ability-status span{padding:7px;font-size:9px}#floor-banner{min-width:280px;padding:18px}#floor-banner strong{font-size:22px}}
+.hero-preview-link{position:absolute;right:30px;bottom:26px;font:10px Arial,sans-serif;letter-spacing:2px;color:#c8b489;text-decoration:none;border-bottom:1px solid #bca17366;padding-bottom:8px}.hero-preview-link:hover{color:#fff0ce}
+@media(max-width:700px){.hero-preview-link{position:fixed;right:18px;bottom:14px;font-size:9px}}
