@@ -35,8 +35,8 @@ function createBlenderAsset(asset,{variant='',environment=null}={}){
       }
       const key=asset.name+':'+variant+':'+surface.material;let mat=worldAssetCache.materials.get(key);
       if(!mat){
-        const spec=asset.materials[surface.material],override=variant==='citadel'?{skin:'#435461',scale:'#24313b',plate:'#526b7a',ember:'#a8f2ff'}:{};
-        mat=new THREE.MeshStandardMaterial({name:asset.name+' / '+surface.material,color:override[surface.material]||spec.color,metalness:spec.metalness||0,roughness:spec.roughness??.8,emissive:variant==='citadel'&&surface.material==='ember'?'#39c7ef':spec.emissive||0x000000,emissiveIntensity:spec.emissiveIntensity||1,side:spec.doubleSided||surface.material==='cloth'?THREE.DoubleSide:THREE.FrontSide,envMap:environment,envMapIntensity:.45});
+        const spec=asset.materials[surface.material],override=variant==='citadel'?{skin:'#4b5150',scale:'#303634',plate:'#5c615e',ember:'#b3c3b9'}:{};
+        mat=new THREE.MeshStandardMaterial({name:asset.name+' / '+surface.material,color:override[surface.material]||spec.color,metalness:spec.metalness||0,roughness:spec.roughness??.8,emissive:variant==='citadel'&&surface.material==='ember'?'#78978a':spec.emissive||0x000000,emissiveIntensity:spec.emissiveIntensity||1,side:spec.doubleSided||surface.material==='cloth'?THREE.DoubleSide:THREE.FrontSide,envMap:environment,envMapIntensity:.32});
         if(spec.grain){const grain=worldAssetGrain(spec.grain);mat.roughnessMap=grain;mat.bumpMap=grain;mat.bumpScale=spec.grain==='stone'?.055:spec.grain==='hide'?.012:.0015;if(spec.grain==='stone')mat.map=grain;}
         worldAssetCache.materials.set(key,mat);
       }
@@ -70,12 +70,12 @@ function createBlenderArena(floor){
   const model=createBlenderAsset(asset,gameAssetOptions()),root=model.root,flames=[];
   pillars.push(...asset.extras.colliders.map(p=>({...p})));
   if(floor===1){
-    const lava=box(root,0,-.55,0,180,.3,180,0xc74717);lava.material=material(0xbc3b10,0xc63007);lava.castShadow=false;
+    const lava=box(root,0,-.55,0,180,.3,180,0x241f19);lava.material=new THREE.MeshStandardMaterial({color:0x241f19,roughness:.92,emissive:0x6f2f0e,emissiveIntensity:.17});lava.castShadow=false;
     for(const [i,p]of asset.extras.torches.entries()){
       const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:flameTexture(),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));sprite.position.set(p[0],p[1]+.5,p[2]);sprite.scale.set(.9,1.6,1);root.add(sprite);flames.push(sprite);
       if(i%2===0){const light=new THREE.PointLight(0xff8b42,23,13,2);light.position.set(p[0],p[1]+.3,p[2]);root.add(light);}
     }
-    const sun=new THREE.Mesh(new THREE.SphereGeometry(6,24,16),new THREE.MeshBasicMaterial({color:0xd98b4b}));sun.position.set(-24,21,-80);root.add(sun);
+    const sun=new THREE.Mesh(new THREE.SphereGeometry(6,24,16),new THREE.MeshBasicMaterial({color:0x817664}));sun.position.set(-24,21,-80);root.add(sun);
     const positions=[];for(let i=0;i<140;i++)positions.push(Math.sin(i*5.7)*28,1+i%18,Math.cos(i*2.3)*42);
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));const embers=new THREE.Points(geo,new THREE.PointsMaterial({color:0xffbd70,size:.075,transparent:true,opacity:.7,depthWrite:false}));root.add(embers);
     const spawn=ring(1.6,0xa3b3b4);spawn.position.z=MAP.spawnZ;root.add(spawn);

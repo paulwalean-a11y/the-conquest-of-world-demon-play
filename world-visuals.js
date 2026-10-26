@@ -23,8 +23,8 @@ function buildAtmosphere(root,floor){
   if(!worldVisualTextures[key]){
     const c=document.createElement('canvas');c.width=1024;c.height=512;const ctx=c.getContext('2d');
     const grad=ctx.createLinearGradient(0,0,0,512);
-    if(floor===1){grad.addColorStop(0,'#100c16');grad.addColorStop(.42,'#3d151c');grad.addColorStop(.58,'#93351c');grad.addColorStop(.69,'#c55e2e');grad.addColorStop(1,'#190d13');}
-    else{grad.addColorStop(0,'#080d18');grad.addColorStop(.45,'#152235');grad.addColorStop(.7,'#526279');grad.addColorStop(1,'#101827');}
+    if(floor===1){grad.addColorStop(0,'#161a1c');grad.addColorStop(.42,'#343535');grad.addColorStop(.58,'#5e554a');grad.addColorStop(.69,'#7e6d55');grad.addColorStop(1,'#252626');}
+    else{grad.addColorStop(0,'#12191e');grad.addColorStop(.45,'#303b42');grad.addColorStop(.7,'#737c80');grad.addColorStop(1,'#2a3339');}
     ctx.fillStyle=grad;ctx.fillRect(0,0,1024,512);
     for(let layer=0;layer<18;layer++){
       ctx.beginPath();ctx.moveTo(0,180+layer*9);
@@ -44,9 +44,9 @@ function enhanceWorldVisuals(environment,number){
   });
   buildAtmosphere(root,number);
   const cold=number===2;
-  scene.fog.color.setHex(cold?0x29364a:0x4a2521);scene.fog.density=cold?.009:.008;
-  hemisphere.intensity=cold?.85:.8;hemisphere.groundColor.setHex(cold?0x182330:0x3e1912);
-  moon.intensity=cold?2.8:2.4;moon.color.setHex(cold?0xc3d9f7:0xffc49b);
+  scene.fog.color.setHex(cold?0x3a4449:0x4b4740);scene.fog.density=cold?.016:.014;
+  hemisphere.intensity=cold?1.05:1;hemisphere.groundColor.setHex(cold?0x242a2b:0x2f2921);
+  moon.intensity=cold?2.4:2.5;moon.color.setHex(cold?0xd3dcde:0xe4d5ba);
   if(root.userData.blender)return;
   if(!cold){
     // Dark mortar beneath the existing walkable tiles, above the decorative lava.

@@ -90,6 +90,7 @@ function spawnFloorBoss(){
 function loadFloor(number){
   if(!FLOORS[number])return false;
   clearCurrentFloor();currentFloor=number;const config=FLOORS[number];
+  document.body.classList.remove('player-dead');
   scene.background.setHex(config.sky);scene.fog.color.setHex(config.sky);scene.fog.density=config.arena?.007:.013;
   hemisphere.color.setHex(config.arena?0xcceaff:0xffbd88);hemisphere.groundColor.setHex(config.arena?0x53617e:0x6c2420);
   moon.color.setHex(config.arena?0xdaf8ff:0xffcaa0);
@@ -105,7 +106,7 @@ function loadFloor(number){
   $('hp-text').textContent=player.maxHp+' / '+player.maxHp;$('hp-fill').style.width='100%';$('toast').textContent='';
   $('scope').textContent=config.name+' · '+config.bossName;$('build-floor').textContent=config.name;
   document.querySelector('h1').innerHTML='<span class="title-prefix">The conquest of</span> <span class="title-main">world Demon</span>';
-  updateFloorTravel();updateCamera();return true;
+  resetSoulsCombat();updateFloorTravel();updateCamera();return true;
 }
 function floorCleared(){
   if(transition)return;
@@ -268,7 +269,7 @@ function updateGleam(dt){
     const attack=GLEAM_ATTACKS[g.attack],step=attack.steps[g.index],speed=g.berserk?.88:1;
     g.time=Math.max(0,g.time-dt);enemy.state=attack.name+' · '+(g.index+1)+'/'+attack.steps.length+' · '+g.phase.toUpperCase();
     if(g.phase==='telegraph'){
-      enemy.sword.rotation.set(-.25,0,2.45);g.front.material.opacity=.4+Math.sin(elapsed*12)*.08;
+      enemy.sword.rotation.set(-.25,0,2.45);g.front.material.opacity=.16+Math.sin(elapsed*12)*.035;
       if(step.shape!=='circle'){g.warning.position.copy(e);g.warning.position.y=.2;}
       if(g.time<=0){g.phase='attack';g.time=step.duration*speed;g.start.copy(e);g.warning.visible=false;
         if(step.shape==='front'||step.shape==='spin')hitGleamStep(step);

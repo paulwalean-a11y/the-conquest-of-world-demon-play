@@ -17,7 +17,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
-const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, .1, 180);
+const camera = new THREE.PerspectiveCamera(54, innerWidth/innerHeight, .1, 180);
 const hemisphere=new THREE.HemisphereLight(0xffbd88,0x6c2420,2);scene.add(hemisphere);
 const moon = new THREE.DirectionalLight(0xffcaa0, 2.2);
 moon.position.set(-9, 30, 8); moon.castShadow = true;
@@ -174,7 +174,8 @@ blade.material=new THREE.MeshStandardMaterial({color:0xc5e6ee,emissive:0x438bb0,
 kevin.rotation.x=-.55;
 const slash=new THREE.Mesh(new THREE.RingGeometry(1.3,2.1,24,1,Math.PI/6,Math.PI*2/3),new THREE.MeshBasicMaterial({color:0xa7e9ff,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}));
 slash.rotation.x=-Math.PI/2;slash.position.y=.9;slash.visible=false;player.root.add(slash);
-const combat={cooldown:0,time:0,hit:false,swings:0};
+const combat={cooldown:0,time:0,hit:false,swings:0,duration:.5,hitAt:.38,damage:10,heavy:false,facing:0};
+slash.material.color.setHex(0xc6bca4);
 const meteor={phase:'ready',aiming:false,distance:13,radius:6.5,damage:180,time:0,target:new THREE.Vector3(),rock:new THREE.Group()};
 meteor.marker=ring(meteor.radius,0xffdc72);scene.add(meteor.marker);meteor.marker.visible=false;
 const targetDisc=new THREE.Mesh(new THREE.CircleGeometry(meteor.radius,48),new THREE.MeshBasicMaterial({color:0xffb43d,transparent:true,opacity:.13,side:THREE.DoubleSide,depthWrite:false}));
@@ -214,7 +215,8 @@ for(const [radius,color,opacity] of [[3.3,0xff591a,.5],[1.8,0xffdd7b,.7]]){
 }
 scene.add(breath.root);breath.root.visible=false;
 const breathWarningGeometry=new THREE.BufferGeometry();breathWarningGeometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(9),3));
-breath.warning=new THREE.Mesh(breathWarningGeometry,new THREE.MeshBasicMaterial({color:0xffa42c,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false}));scene.add(breath.warning);breath.warning.visible=false;
+breath.warning=new THREE.Mesh(breathWarningGeometry,new THREE.MeshBasicMaterial({color:0xc99a5a,transparent:true,opacity:.12,side:THREE.DoubleSide,depthWrite:false}));
+breath.warning.add(new THREE.LineLoop(breathWarningGeometry,new THREE.LineBasicMaterial({color:0xd3b180,transparent:true,opacity:.55,depthWrite:false})));scene.add(breath.warning);breath.warning.visible=false;
 $('objective').textContent='Defeat the Ember Dragon · 500 HP';
 const keys=new Set(); let yaw=0,pitch=.45,active=false,ended=false,elapsed=0,toastTime=0;
 const testMode=new URLSearchParams(location.search).has('test');
@@ -229,9 +231,14 @@ function move(entity,dx,dz){
 }
 function updateCamera(){
   const p=player.root.position;
-  camera.position.set(THREE.MathUtils.clamp(p.x+Math.sin(yaw)*7.5,-MAP.halfX+.2,MAP.halfX-.2),2+Math.sin(pitch)*7.5,THREE.MathUtils.clamp(p.z+Math.cos(yaw)*7.5,-MAP.halfZ+.2,MAP.halfZ-.2));
+  const distance=souls.lock===enemy&&currentFloor===1?7.4:5.2;
+  camera.position.set(THREE.MathUtils.clamp(p.x+Math.sin(yaw)*distance,-MAP.halfX+.2,MAP.halfX-.2),1.8+Math.sin(pitch)*4.5,THREE.MathUtils.clamp(p.z+Math.cos(yaw)*distance,-MAP.halfZ+.2,MAP.halfZ-.2));
   if(cameraShake>0){camera.position.x+=Math.sin(elapsed*80)*cameraShake*.45;camera.position.y+=Math.cos(elapsed*67)*cameraShake*.35;}
-  camera.lookAt(p.x-Math.sin(yaw)*4,1.8,p.z-Math.cos(yaw)*4);
+  const locked=souls.lock&&!meteor.aiming&&!blackhole.aiming?souls.lock:null;
+  if(locked)camera.lookAt(p.x*.65+locked.root.position.x*.35,locked===enemy?(currentFloor===1?3.2:2.3):1.3,p.z*.65+locked.root.position.z*.35);
+  else camera.lookAt(p.x-Math.sin(yaw)*2.5,1.45,p.z-Math.cos(yaw)*2.5);
+  updateLock(0);
+  if(arenaActive&&environment?.gate)environment.gate.visible=camera.position.z<FLOORS[currentFloor].arena.entrance-.1;
 }
 function update(dt){
   if(!active)return;
@@ -239,8 +246,10 @@ function update(dt){
   if(updateFloor(dt)){updateCamera();return;}
   const dodging=updateDodge(dt);updateImpacts(dt);
   let x=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),z=Number(keys.has('KeyS'))-Number(keys.has('KeyW'));
-  const length=Math.hypot(x,z);if(length&&!dodging){x/=length;z/=length;move(player,(x*Math.cos(yaw)+z*Math.sin(yaw))*PLAYER_SPEED*dt,(-x*Math.sin(yaw)+z*Math.cos(yaw))*PLAYER_SPEED*dt);}
-  player.root.rotation.y=yaw;
+  const length=Math.hypot(x,z),sprinting=updateSouls(dt,!!length);updateLock(dt);
+  const mobility=combat.time>0?.22:souls.heal.time>0?.16:sprinting?1.35:1;
+  if(length&&!dodging){x/=length;z/=length;move(player,(x*Math.cos(yaw)+z*Math.sin(yaw))*PLAYER_SPEED*dt*mobility,(-x*Math.sin(yaw)+z*Math.cos(yaw))*PLAYER_SPEED*dt*mobility);}
+  player.root.rotation.y=dodging?Math.atan2(-dodge.direction.x,-dodge.direction.z):combat.time>0?combat.facing:yaw;
   player.legs.forEach((leg,i)=>leg.rotation.x=length?Math.sin(elapsed*11+i*Math.PI)*.4:0);
   player.cape.rotation.x=Math.sin(elapsed*6)*.035+(length?.13:0);
   animateHeroDetails(player,elapsed,!!length,combat.time>0,dodging);
@@ -375,10 +384,11 @@ function updateCombat(dt){
   combat.time=Math.max(0,combat.time-dt);
   slash.visible=combat.time>0;
   if(combat.time>0){
-    const progress=1-combat.time/.28;
-    kevin.rotation.set(-1.1,1.2-progress*2.4,-.4);
-    slash.material.opacity=(1-progress)*.6;
-    if(progress>=.3&&!combat.hit){combat.hit=true;strikeTarget();}
+    const progress=1-combat.time/combat.duration;
+    const swing=THREE.MathUtils.smoothstep(progress,combat.heavy?.25:.18,combat.heavy?.75:.68);
+    kevin.rotation.set(combat.heavy?-1.75+Math.sin(swing*Math.PI)*.6:-1.1,1.35-swing*2.7,-.4);
+    slash.material.opacity=Math.sin(swing*Math.PI)*.2;
+    if(progress>=combat.hitAt&&!combat.hit){combat.hit=true;strikeTarget();}
   }else {kevin.rotation.set(-.55,0,0);if(player.state==='ATTACKING')player.state='NORMAL';}
 }
 function resetBreath(){breath.phase='ready';breath.time=0;breath.cooldown=0;breath.root.visible=false;breath.warning.visible=false;}
@@ -463,19 +473,20 @@ function updateMinions(dt){
   }
 }
 function damagePlayer(amount){
-  if(!active||transition||isInvulnerable())return;player.hp=Math.max(0,player.hp-amount);$('hp-text').textContent=Math.ceil(player.hp)+' / '+player.maxHp;$('hp-fill').style.width=(player.hp/player.maxHp*100)+'%';if(amount>=1)notify('−'+Math.round(amount)+' HP');if(player.hp===0)finish(false);
+  if(!active||transition||isInvulnerable())return;if(souls.heal.time>0)cancelFlask();souls.damageFlash=Math.min(1,souls.damageFlash+.3);player.hp=Math.max(0,player.hp-amount);$('hp-text').textContent=Math.ceil(player.hp)+' / '+player.maxHp;$('hp-fill').style.width=(player.hp/player.maxHp*100)+'%';if(amount>=1)notify('−'+Math.round(amount)+' HP');if(player.hp===0)finish(false);
 }
 function strikeTarget(){
   for(const target of hostiles){
     if(!validTarget(target))continue;
     const dx=target.root.position.x-player.root.position.x,dz=target.root.position.z-player.root.position.z,d=Math.hypot(dx,dz);
-    const facing=(-Math.sin(yaw)*dx-Math.cos(yaw)*dz)/(d||1);
-    if(d<=2.25+(target===enemy?target.radius:0)&&facing>=.5){damageEnemy(10,target);notify('KEVIN  ·  10 DAMAGE');}
+    const facing=(-Math.sin(combat.facing)*dx-Math.cos(combat.facing)*dz)/(d||1);
+    if(d<=2.25+(target===enemy?target.radius:0)&&facing>=.5){damageEnemy(combat.damage,target);cameraShake=combat.heavy?.18:.08;burst(target.root.position,0xb9a587,.5);notify('KEVIN · '+combat.damage+' DAMAGE');}
   }
 }
 function damageEnemy(amount,target=enemy){
   if(!active||transition||!validTarget(target))return;
   target.hp=Math.max(0,target.hp-amount);target.flash=.16;
+  if(target.hp===0)awardSouls(target);
   if(target===enemy){
     updateBossHitFeedback(enemy,0);
     $('enemy-fill').style.width=(enemy.hp/enemy.maxHp*100)+'%';$('enemy-hp').textContent=Math.ceil(enemy.hp)+' / '+enemy.maxHp;
@@ -486,23 +497,25 @@ function damageEnemy(amount,target=enemy){
   }
 }
 function finish(won){
+  if(!won)dropSouls();
   active=false;ended=true;keys.clear();resetExtraCombat();player.state=won?'NORMAL':'DEAD';bannerTime=0;$('floor-banner').hidden=true;document.exitPointerLock?.();
   resetMeteor();
   resetBlackhole();resetBreath();
   plasma.time=0;plasma.root.visible=false;
   $('overlay').hidden=false;$('enemy-hud').hidden=true;
-  document.querySelector('h1').innerHTML=won?'VICTORY<span>'+FLOORS[currentFloor].bossName+' DEFEATED</span>':'FALLEN<span>RISE AND TRY AGAIN</span>';
+  document.body.classList.toggle('player-dead',!won);
+  document.querySelector('h1').innerHTML=won?'VICTORY<span>'+FLOORS[currentFloor].bossName+' DEFEATED</span>':'YOU DIED<span>THE EMBER REMEMBERS</span>';
   $('intro-text').textContent=won?'Floor '+currentFloor+' cleared. Paul and Kevin have conquered '+FLOORS[currentFloor].name+'.':'Read the telegraph, dodge, then counterattack. Your current floor is ready for a retry.';
   $('start').innerHTML='PLAY AGAIN <span>→</span>';
   $('scope').textContent=FLOORS[currentFloor].name+' · Floor '+currentFloor;
 }
-function attack(){if(!canAct()||combat.cooldown>0)return;player.state='ATTACKING';combat.cooldown=.42;combat.time=.28;combat.hit=false;combat.swings++;}
+function attack(heavy=false){if(!canAct()||combat.cooldown>0||!spendStamina(heavy?34:18))return false;player.state='ATTACKING';combat.heavy=heavy;combat.duration=heavy?.95:.5;combat.cooldown=heavy?1.08:.65;combat.time=combat.duration;combat.hitAt=heavy?.48:.38;combat.damage=heavy?32:10;combat.facing=yaw;combat.hit=false;combat.swings++;return true;}
 function pause(){if(!active)return;active=false;keys.clear();rightGesture=null;if(meteor.aiming)resetMeteor();if(blackhole.aiming)resetBlackhole();$('meteor-hint').hidden=true;$('blackhole-hint').hidden=true;if(document.pointerLockElement)document.exitPointerLock();$('overlay').hidden=false;$('start').innerHTML='RESUME <span>→</span>';$('intro-text').textContent='Your journey is paused.';}
 function resetEncounter(){loadFloor(currentFloor);}
 function restartFloor(){active=false;resetEncounter();$('overlay').hidden=false;$('start').innerHTML='ENTER THE DUNGEON <span>→</span>';$('intro-text').textContent='Floor '+currentFloor+' · A fresh attempt awaits.';if(document.pointerLockElement)document.exitPointerLock();}
 function start(){if(ended)resetEncounter();active=true;$('overlay').hidden=true;if(meteor.phase!=='ready')$('meteor-hint').hidden=false;if(!testMode){try{const request=canvas.requestPointerLock();if(request?.catch)request.catch(()=>notify('Hold right mouse and drag to look.'));}catch{notify('Hold right mouse and drag to look.');}}}
 $('start').addEventListener('click',start);
-addEventListener('keydown',event=>{if(['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','KeyF','Space'].includes(event.code))event.preventDefault();if(event.code==='Escape')pause();if(event.code==='KeyR'&&!event.repeat)restartFloor();if(active){keys.add(event.code);if(event.code==='Space'&&!event.repeat)tryDodge();if(event.code==='KeyQ'&&!event.repeat)firePlasma();if(event.code==='KeyE'&&!event.repeat)meteorSkill();if(event.code==='KeyF'&&!event.repeat)blackholeSkill();}});
+addEventListener('keydown',event=>{if(active&&['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','KeyF','Space','Tab'].includes(event.code))event.preventDefault();if(event.code==='Escape')pause();if(event.code==='KeyR'&&!event.repeat)restartFloor();if(active){keys.add(event.code);if(event.code==='Tab'&&!event.repeat)toggleLock();if(event.code==='KeyC'&&!event.repeat)useFlask();if(event.code==='KeyG'&&!event.repeat)restAtShrine();if(event.code==='Space'&&!event.repeat)tryDodge();if(event.code==='KeyQ'&&!event.repeat)firePlasma();if(event.code==='KeyE'&&!event.repeat)meteorSkill();if(event.code==='KeyF'&&!event.repeat)blackholeSkill();}});
 addEventListener('keyup',event=>keys.delete(event.code));
 addEventListener('blur',pause);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
@@ -510,9 +523,9 @@ document.addEventListener('pointerlockchange',()=>{if(!document.pointerLockEleme
 canvas.addEventListener('contextmenu',event=>event.preventDefault());
 let rightGesture=null;
 document.addEventListener('mousemove',event=>{if(rightGesture&&Math.hypot(event.clientX-rightGesture.x,event.clientY-rightGesture.y)>5)rightGesture.dragged=true;if(active&&(meteor.aiming||blackhole.aiming||document.pointerLockElement===canvas||(event.buttons&2))){yaw-=event.movementX*.003;if(meteor.aiming){meteor.distance=THREE.MathUtils.clamp(meteor.distance-event.movementY*.065,4,30);aimMeteor();}else if(blackhole.aiming){blackhole.distance=THREE.MathUtils.clamp(blackhole.distance-event.movementY*.065,4,30);aimBlackhole();}else pitch=THREE.MathUtils.clamp(pitch+event.movementY*.002,.15,.95);}});
-canvas.addEventListener('mousedown',event=>{if(!active)return;if(event.button===0)attack();if(event.button===2){event.preventDefault();if(document.pointerLockElement===canvas)fireDimension();else rightGesture={x:event.clientX,y:event.clientY,dragged:false};}});
+canvas.addEventListener('mousedown',event=>{if(!active)return;if(event.button===0)attack(event.shiftKey);if(event.button===2){event.preventDefault();if(document.pointerLockElement===canvas)fireDimension();else rightGesture={x:event.clientX,y:event.clientY,dragged:false};}});
 document.addEventListener('mouseup',event=>{if(event.button===2){if(rightGesture&&!rightGesture.dragged)fireDimension();rightGesture=null;}});
-function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();resizeSoulsPresentation();}
 addEventListener('resize',resize);
 let previous=performance.now();
-function frame(now){const dt=Math.min((now-previous)/1000,.05);previous=now;if(!testMode)update(dt);renderer.render(scene,camera);requestAnimationFrame(frame);}
+function frame(now){const dt=Math.min((now-previous)/1000,.05);previous=now;if(!testMode)update(dt);renderSoulsFrame(now);requestAnimationFrame(frame);}

@@ -34,11 +34,11 @@ function createBlenderHero(scene,renderer){
   const steelGrain=grain(),clothGrain=grain(true),materials={};
   for(const [name,spec]of Object.entries(asset.materials)){
     materials[name]=new THREE.MeshPhysicalMaterial({
-      name:'Paul / '+name,color:spec.color,metalness:spec.metalness,roughness:spec.roughness,
-      envMap:reflection.texture,envMapIntensity:name==='cloth'?.15:.75,
+      name:'Paul / '+name,color:spec.color,metalness:spec.metalness,roughness:Math.max(spec.roughness,name==='steel'?.48:.35),
+      envMap:reflection.texture,envMapIntensity:name==='cloth'?.15:.45,
       roughnessMap:name==='rune'?null:name==='cloth'?clothGrain:steelGrain,
       bumpMap:name==='cloth'?clothGrain:steelGrain,bumpScale:name==='cloth'?.007:.0008,
-      clearcoat:['steel','edge'].includes(name)?.18:0,clearcoatRoughness:.35,
+      clearcoat:0,clearcoatRoughness:.55,
       emissive:spec.emissive||0x000000,emissiveIntensity:spec.emissive?1.3:0,
       side:name==='cloth'?THREE.DoubleSide:THREE.FrontSide
     });
@@ -61,8 +61,11 @@ function createBlenderHero(scene,renderer){
   }
   // A soft cool edge keeps the armor readable against the inferno and dark stone.
   const rim=new THREE.PointLight(0x9ecbff,1.8,6,2);rim.position.set(-1.5,3,1.8);root.add(rim);
+  const flaskVisual=new THREE.Group();flaskVisual.visible=false;flaskVisual.position.set(.59,1.82,-.72);root.add(flaskVisual);
+  const flask=new THREE.Mesh(new THREE.SphereGeometry(.095,12,8),new THREE.MeshStandardMaterial({color:0x8c6026,metalness:.35,roughness:.35,emissive:0x6d2b08,emissiveIntensity:.45}));flask.scale.set(.8,1.2,.7);flaskVisual.add(flask);
+  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.035,.04,.1,8),materials.gold);neck.position.y=.12;flaskVisual.add(neck);
   scene.add(root);
-  return {root,body,legs:[groups.leftLeg,groups.rightLeg],cape:groups.cape,arms:[groups.leftArm,groups.rightArm],weapon:groups.sword,heroMaterials:materials};
+  return {root,body,legs:[groups.leftLeg,groups.rightLeg],cape:groups.cape,arms:[groups.leftArm,groups.rightArm],weapon:groups.sword,heroMaterials:materials,flaskVisual};
 }
 
 function animateHeroDetails(player,time,moving,attacking,dodging){
@@ -71,4 +74,11 @@ function animateHeroDetails(player,time,moving,attacking,dodging){
   player.arms[1].rotation.x=attacking?-.36:moving?Math.sin(time*11)*.15:0;
   player.body.position.y=dodging?-.12:moving?Math.abs(Math.sin(time*11))*.025:Math.sin(time*1.8)*.008;
   player.cape.rotation.z=Math.sin(time*2.5)*.018;
+  const healing=typeof souls!=='undefined'&&souls.heal.time>0;
+  if(player.flaskVisual){player.flaskVisual.visible=healing;player.weapon.visible=!healing;if(healing){const progress=1-souls.heal.time/1.25;player.arms[1].rotation.x=1.45*THREE.MathUtils.smoothstep(progress,0,.15);player.flaskVisual.rotation.x=-.4;}}
+  if(dodging&&typeof dodge!=='undefined'){
+    const progress=1-dodge.time/dodge.duration,angle=-progress*Math.PI*2;
+    player.body.scale.set(1,.7,1);player.body.rotation.x=angle;player.body.position.y=.84-Math.cos(angle)*.84;player.body.position.z=-Math.sin(angle)*.84;
+    player.legs.forEach(leg=>leg.rotation.x=.8);
+  }else{player.body.scale.set(1,1,1);player.body.rotation.x=0;player.body.position.z=0;}
 }

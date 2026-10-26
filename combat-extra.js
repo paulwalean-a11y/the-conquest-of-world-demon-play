@@ -1,10 +1,10 @@
 'use strict';
 // Shared abilities use the same move(), damageEnemy(), and damagePlayer() as Kevin.
-const dodge={duration:.26,cooldown:0,cooldownLength:.72,iframeDuration:.17,time:0,direction:new THREE.Vector3(),trail:null};
+const dodge={duration:.48,cooldown:0,cooldownLength:.8,iframeDuration:.17,time:0,direction:new THREE.Vector3(),trail:null};
 const dimension={cooldown:0,cooldownLength:3,damage:120,speed:28,timeout:120,projectiles:[]};
 const impacts=[];
 let cameraShake=0;
-function canAct(){return active&&!transition&&player.state!=='DODGING'&&player.hp>0;}
+function canAct(){return active&&!transition&&player.state!=='DODGING'&&player.hp>0&&combat.time===0&&souls.heal.time===0;}
 function validTarget(target){return target.hp>0&&!target.dormant&&target.root.visible;}
 function initExtraCombat(){
   dodge.trail=new THREE.Group();scene.add(dodge.trail);dodge.trail.visible=false;
@@ -14,19 +14,20 @@ function initExtraCombat(){
   }
 }
 function tryDodge(){
-  if(!canAct()||dodge.cooldown>0)return false;
+  if(!canAct()||dodge.cooldown>0||!spendStamina(24))return false;
   let x=Number(keys.has('KeyD'))-Number(keys.has('KeyA')),z=Number(keys.has('KeyS'))-Number(keys.has('KeyW'));
   if(!x&&!z)z=-1;
   dodge.direction.set(x*Math.cos(yaw)+z*Math.sin(yaw),0,-x*Math.sin(yaw)+z*Math.cos(yaw)).normalize();
   dodge.time=dodge.duration;dodge.cooldown=dodge.cooldownLength;player.state='DODGING';
   combat.time=0;slash.visible=false;plasma.time=0;plasma.root.visible=false;
+  burst(player.root.position,0x8c8374,.35);
   return true;
 }
 function updateDodge(dt){
   dodge.cooldown=Math.max(0,dodge.cooldown-dt);
   const wasDodging=dodge.time>0;
   if(wasDodging){
-    const tick=Math.min(dt,dodge.time),speed=20*(.7+.3*dodge.time/dodge.duration);
+    const tick=Math.min(dt,dodge.time),speed=10*(.7+.3*dodge.time/dodge.duration);
     // Small physical steps preserve collision even during a slow frame.
     const steps=Math.ceil(speed*tick/.15);
     for(let i=0;i<steps;i++)move(player,dodge.direction.x*speed*tick/steps,dodge.direction.z*speed*tick/steps);
@@ -36,7 +37,7 @@ function updateDodge(dt){
     player.body.rotation.x=-.2;
     if(dodge.time<=1e-8){dodge.time=0;player.state='NORMAL';player.body.rotation.x=0;}
   }
-  dodge.trail.visible=dodge.time>0;
+  dodge.trail.visible=false;
   $('dodge-status').textContent=dodge.cooldown>0?dodge.cooldown.toFixed(1)+'s':'READY';
   return wasDodging;
 }
@@ -97,4 +98,6 @@ function resetExtraCombat(){
   dodge.time=0;dodge.cooldown=0;dimension.cooldown=0;cameraShake=0;
   if(dodge.trail)dodge.trail.visible=false;
   player.state='NORMAL';player.body.rotation.x=0;
+  player.body.scale.set(1,1,1);player.body.position.set(0,0,0);souls.heal.time=0;souls.lock=null;
+  if(player.flaskVisual)player.flaskVisual.visible=false;if(player.weapon)player.weapon.visible=true;
 }
