@@ -50,8 +50,8 @@ function updateBossHitFeedback(boss,dt){
 }
 function disposeRoot(root){
   if(!root)return;root.removeFromParent();
-  const cached=new Set(Object.values(mats)),geometries=new Set(),materials=new Set();
-  root.traverse(object=>{if(object.geometry)geometries.add(object.geometry);if(object.material)for(const m of [].concat(object.material))if(!cached.has(m))materials.add(m);});
+  const cached=new Set([...Object.values(mats),...worldAssetCache.materials.values()]),geometries=new Set(),materials=new Set();
+  root.traverse(object=>{if(object.geometry&&!object.userData.sharedGeometry)geometries.add(object.geometry);if(object.material)for(const m of [].concat(object.material))if(!cached.has(m))materials.add(m);});
   geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
 }
 function showBanner(label,title,time=2){$('floor-banner').hidden=false;$('floor-label').textContent=label;$('floor-title').textContent=title;bannerTime=time;}
@@ -72,9 +72,11 @@ function spawnFloorEnemies(){
   for(const [x,z] of config.mobs){
     const mob=minion(x,z);Object.assign(mob,{hp:config.hp,maxHp:config.hp,speed:config.speed,damage:config.damage,aggro:config.aggro,attackWindup:config.windup,radius:.35});
     if(config.arena){
-      mob.body.scale.setScalar(1.12);box(mob.body,0,1.2,-.27,.6,.65,.14,0x6c9aa9);
-      box(mob.body,.5,.9,-.4,.1,1.2,.12,0xb5f5ff);mob.warning.material.color.setHex(0xffd36d);
+      mob.body.scale.setScalar(1.12);
+      if(!mob.root.userData.blender){box(mob.body,0,1.2,-.27,.6,.65,.14,0x6c9aa9);box(mob.body,.5,.9,-.4,.1,1.2,.12,0xb5f5ff);}
+      mob.warning.material.color.setHex(0xffd36d);
     }
+    if(mob.root.userData.blender)initBossHitFeedback(mob);
     minions.push(mob);hostiles.push(mob);
   }
 }
@@ -132,6 +134,7 @@ function updateFloor(dt){
   return false;
 }
 function buildCastleEnvironment(){
+  if(window.SKYBOUND_CITADEL_ASSET)return createBlenderArena(2);
   const root=new THREE.Group(),stone=0x7f8e9b,trim=0xbbc9d4;
   // A floating island, courtyard paths, and an elevated, open circular arena.
   box(root,0,-.55,0,36,1,72,0x61796c);
@@ -188,9 +191,12 @@ const GLEAM_ATTACKS={
   storm:{name:'BERSERK SWORD STORM',steps:[{shape:'front',windup:.85,duration:.2,damage:18,range:6},{shape:'front',windup:.65,duration:.2,damage:18,range:6,track:.2},{shape:'front',windup:.8,duration:.25,damage:28,range:6.5,track:.2},{shape:'spin',windup:1.05,duration:.3,damage:32,range:7}],recovery:1.8}
 };
 function gleamEyes(){
-  const root=new THREE.Group(),body=new THREE.Group();root.add(body);scene.add(root);
+  const art=window.GLEAM_EYES_ASSET?createBlenderGleam():null;
+  const root=art?.root||new THREE.Group(),body=art?.body||new THREE.Group();
+  let legs=art?.legs,sword=art?.sword,eyes=art?.eyes;
+  if(!art){root.add(body);scene.add(root);
   gem(body,0,3,0,1.6,1.9,1,0x214566);gem(body,0,3.3,-.72,1.22,1.1,.45,0x6ca7ba);
-  const legs=[];
+  legs=[];
   for(const side of [-1,1]){
     const leg=new THREE.Group();leg.position.set(side*.7,1.8,0);body.add(leg);legs.push(leg);
     box(leg,0,-.75,0,.7,1.8,.8,0x284464);box(leg,0,-1.6,-.25,.95,.4,1.2,0x17293e);
@@ -198,11 +204,12 @@ function gleamEyes(){
     taper(body,[side*.62,5,-.05],[side*1.3,6,.1],.32,.02,0xc2d4df);
   }
   gem(body,0,4.75,-.12,.82,.95,.72,0x234761);gem(body,0,4.35,-.75,.65,.4,.42,0x84a5b1);
-  const eyes=[];for(const x of [-.34,.34]){const eye=box(body,x,4.95,-.77,.3,.15,.08,0x9fffff);eye.material=material(0xaaffff,0x62eaff);eyes.push(eye);}
-  const sword=new THREE.Group();sword.position.set(1.75,3.4,0);body.add(sword);
+  eyes=[];for(const x of [-.34,.34]){const eye=box(body,x,4.95,-.77,.3,.15,.08,0x9fffff);eye.material=material(0xaaffff,0x62eaff);eyes.push(eye);}
+  sword=new THREE.Group();sword.position.set(1.75,3.4,0);body.add(sword);
   box(sword,0,-.35,0,.22,1.1,.23,0x192d47);box(sword,0,-.8,0,1.2,.22,.35,0x9bc9dc);
   box(sword,0,-2.5,0,.72,3.3,.24,0xb6dce7);box(sword,0,-2.5,-.14,.16,3.3,.045,0x8dffff).material=material(0xafffff,0x40abcf);
   sword.rotation.z=.7;
+  }
   const effects=new THREE.Group();scene.add(effects);
   const warning=new THREE.Group();effects.add(warning);
   const warningMaterial=new THREE.MeshBasicMaterial({color:0xff7038,transparent:true,opacity:.42,side:THREE.DoubleSide,depthWrite:false});

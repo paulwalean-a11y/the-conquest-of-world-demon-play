@@ -39,6 +39,7 @@ function ring(radius,color) {
 }
 const pillars=[];
 function buildInfernoEnvironment(){
+if(window.INFERNO_KEEP_ASSET)return createBlenderArena(1);
 const root=new THREE.Group();
 const lava=box(root,0,-.5,0,180,.3,180,0xff5015);lava.material=material(0xff5015,0xd83408);lava.castShadow=false;
 const floor=new THREE.InstancedMesh(new THREE.BoxGeometry(1.92,.3,1.92),material(0xffffff),648);
@@ -113,6 +114,7 @@ function hero() {
   scene.add(root); return {root,body,legs,cape};
 }
 function dragon(){
+  if(window.EMBER_DRAGON_ASSET)return createBlenderDragon();
   const root=new THREE.Group(),body=new THREE.Group();root.add(body);
   const red=0xa54838,dark=0x612e36,ivory=0xe1cfa1;
   gem(body,0,1.05,.2,.82,.65,1.02,red);gem(body,0,.85,-.3,.53,.48,.65,0xc38351);
@@ -146,6 +148,7 @@ function dragon(){
   scene.add(root);return {root,body,legs,head,jaw,wings};
 }
 function minion(x,z){
+  if(window.ASHBOUND_THRALL_ASSET)return createBlenderMinion(x,z);
   const root=new THREE.Group(),body=new THREE.Group();root.add(body);
   gem(body,0,.86,0,.34,.43,.24,0x8e352d);gem(body,0,1.3,0,.31,.3,.25,0xbc5a37);
   const legs=[box(body,-.17,.3,0,.16,.6,.2,0x41252d),box(body,.17,.3,0,.16,.6,.2,0x41252d)];
@@ -445,8 +448,9 @@ function updateMinions(dt){
   for(const mob of minions){
     if(!active||transition)return;if(!validTarget(mob))continue;
     const dx=player.root.position.x-mob.root.position.x,dz=player.root.position.z-mob.root.position.z,d=Math.hypot(dx,dz);
-    mob.cooldown=Math.max(0,mob.cooldown-dt);mob.flash=Math.max(0,mob.flash-dt);
-    mob.body.visible=mob.flash<=0||Math.floor(mob.flash*45)%2===0;
+    mob.cooldown=Math.max(0,mob.cooldown-dt);
+    if(mob.hitMaterials)updateBossHitFeedback(mob,dt);
+    else{mob.flash=Math.max(0,mob.flash-dt);mob.body.visible=mob.flash<=0||Math.floor(mob.flash*45)%2===0;}
     if(mob.windup>0){
       mob.windup=Math.max(0,mob.windup-dt);mob.body.rotation.x=-.2;
       if(mob.windup===0){mob.warning.visible=false;mob.body.rotation.x=0;mob.cooldown=1.2;if(d<1.35)damagePlayer(mob.damage);}
